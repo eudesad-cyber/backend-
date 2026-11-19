@@ -1,0 +1,28 @@
+# Dependencias (raiz e backend)
+node_modules/
+
+# Build
+dist/
+coverage/
+
+# Variaveis de ambiente — NUNCA commitar (o .env.example fica)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Banco local em arquivo (se usar SQLite)
+*.db
+*.db-journal
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

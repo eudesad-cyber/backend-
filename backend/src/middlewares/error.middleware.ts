@@ -23,6 +23,7 @@ interface ErrorBody {
  *  - Prisma P2002              -> 409 (violacao de unicidade)
  *  - Prisma P2025              -> 404 (registro inexistente)
  *  - Prisma P2003              -> 400 (violacao de FK)
+ *  - Prisma P1001/P1002/P1017  -> 503 (banco fora do ar / inacessivel)
  *  - PayloadTooLarge/JSON      -> 413 / 400
  *  - qualquer outro            -> 500 (sem vazar stack em producao)
  */
@@ -39,8 +40,12 @@ export function errorMiddleware(
   const { status, code, message, details } = normalize(err);
 
   if (status >= 500) {
-    // Log completo apenas no servidor.
-    console.error(`[error] ${req.method} ${req.originalUrl} -> ${status}`, err);
+    // Log completo apenas no servidor. 503 e previsivel: log curto, sem stack.
+    if (status === 503) {
+      console.error(`[error] ${req.method} ${req.originalUrl} -> 503 ${code}`);
+    } else {
+      console.error(`[error] ${req.method} ${req.originalUrl} -> ${status}`, err);
+    }
   }
 
   const body: ErrorBody = {
@@ -79,7 +84,23 @@ function normalize(err: unknown): {
     };
   }
 
+  // Banco fora do ar ou inacessivel: e indisponibilidade (503), nao bug do codigo.
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    return {
+      status: 503,
+      code: 'DATABASE_UNAVAILABLE',
+      message: 'Banco de dados indisponivel no momento. Tente novamente em instantes.',
+    };
+  }
+
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P1001' || err.code === 'P1002' || err.code === 'P1017') {
+      return {
+        status: 503,
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'Banco de dados indisponivel no momento. Tente novamente em instantes.',
+      };
+    }
     switch (err.code) {
       case 'P2002': {
         const target = (err.meta?.target as string[] | undefined)?.join(', ');

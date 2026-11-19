@@ -23,7 +23,6 @@ export function createApp(): Application {
   app.set('trust proxy', 1);
 
   // --- Middlewares globais (ordem importa) ---------------------------------
-  app.use(helmet());
   app.use(
     cors({
       origin: corsOrigins,
@@ -35,6 +34,12 @@ export function createApp(): Application {
   );
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+  // Swagger UI serve CSS/JS inline; o CSP padrao do helmet bloqueia a tela.
+  // Aplicamos o CSP estrito em TODAS as rotas, exceto /docs.
+  const helmetStrict = helmet();
+  const helmetDocs = helmet({ contentSecurityPolicy: false });
+  app.use((req, res, next) => (req.path.startsWith('/docs') ? helmetDocs : helmetStrict)(req, res, next));
+
   app.use(globalRateLimiter);
 
   // Request id simples para correlacionar logs.

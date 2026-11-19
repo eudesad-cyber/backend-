@@ -1,0 +1,20 @@
+{
+  "name": "projeto-digital-college-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend do projeto (API de tarefas) — raiz do monorepo, com scripts para rodar tudo a partir daqui.",
+  "scripts": {
+    "dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build",
+    "start": "npm --prefix backend run start",
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix backend run typecheck",
+    "db:up": "docker compose --project-directory backend up -d",
+    "db:down": "docker compose --project-directory backend down",
+    "setup": "npm --prefix backend run prisma:generate && npm --prefix backend run prisma:migrate && npm --prefix backend run db:seed",
+    "postinstall": "npm --prefix backend install"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}

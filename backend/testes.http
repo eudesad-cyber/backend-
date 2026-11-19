@@ -1,0 +1,9 @@
+### 1) Fazer login (a resposta traz o token)
+# @name login
+POST http://localhost:3000/login
+Content-Type: application/json
+ 
+{
+  "usuario": "ana",
+  "senha": "123456"
+}
