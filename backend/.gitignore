@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+coverage/
+
+# Variaveis de ambiente (NUNCA commitar)
+.env
+.env.*
+!.env.example
+
+# Prisma: banco local em arquivo (caso use sqlite)
+prisma/*.db
+prisma/*.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

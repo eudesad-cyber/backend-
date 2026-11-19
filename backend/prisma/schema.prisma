@@ -1,0 +1,94 @@
+// ---------------------------------------------------------------------------
+// Schema Prisma — modelagem do banco relacional (PostgreSQL).
+//
+// Decisoes de modelagem:
+//  - User 1:N Task        -> cada tarefa tem um dono (ownerId), FK indexada.
+//  - User 1:N RefreshToken-> tokens de refresh hasheados, revogaveis, rotativos.
+//  - Role no User         -> autorizacao (USER | ADMIN) sem tabela extra (simples e
+//                            suficiente para RBAC basico; escala para N:N se preciso).
+//  - Indices compostos   -> (ownerId, status, createdAt) cobre a listagem paginada
+//                            por dono + filtro de status + ordenacao, evitando sort.
+//  - Soft delete         -> deletedAt preserva historico e nao quebra auditoria.
+//  - Timestamps          -> createdAt / updatedAt automaticos.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(180)
+  passwordHash String   @db.VarChar(255)
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tasks         Task[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Task {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String       @db.VarChar(160)
+  description String?      @db.Text
+  status      TaskStatus   @default(PENDING)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  ownerId     String       @db.Uuid
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Listagem paginada por dono, filtrada por status e ordenada por data.
+  @@index([ownerId, status, createdAt])
+  // Ordenacao padrao (mais recentes primeiro) por dono.
+  @@index([ownerId, createdAt])
+  @@map("tasks")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  tokenHash String    @unique @db.VarChar(64) // sha256(token) em hex
+  userId    String    @db.Uuid
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?   @db.VarChar(255)
+  ip        String?   @db.VarChar(64)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
